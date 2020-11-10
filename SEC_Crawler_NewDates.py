@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 # Script to import the holdings information from SEC form 13F-HR which is for institutional investment holdings
 # ASSUMES TABLES ARE ALREADY CREATED IN MySQL
 # Import necessary pacakages, define url creator function
@@ -26,10 +20,6 @@ def make_url(base_url, comp):
     return url
 
 print('Imports Complete')
-
-
-# In[2]:
-
 
 # Using the daily index files on the SEC website, create a list of daily index file links
 # Speed bumps (time.sleep) are built in per the request of the SEC
@@ -55,10 +45,6 @@ for item in content['directory']['item'][0:4]:
             time.sleep(.1)
 print('Pulled all YTD links.')
 
-
-# In[3]:
-
-
 # Pull index file links for dates that have not been processed yet
 
 engine = sql.create_engine('mysql+pymysql://ksho:Magnum10%21@localhost/sec') #refresh if server stopped?
@@ -76,10 +62,6 @@ if len(new_dates) >= 1:
 else:
     print('Links are up to date. Exiting program...')
 #     sys.exit()
-
-
-# In[4]:
-
 
 # Parse through index files to extract links to forms filed that day, add link for json, create master form df
 
@@ -99,10 +81,6 @@ for k in new_dates:
 
 all_forms = pd.concat(idx_dfs, axis = 0, ignore_index = True)
 all_forms.tail(5)
-
-
-# In[5]:
-
 
 # Pull the json for all form 13F-HR and create a dictionary of xml links (2) for each filing
 # no_hold list is made up of jsons without a holdings xml file, only the primary_doc.xml is present (do something with it?)
@@ -147,10 +125,6 @@ print("Hold count is " + format(hold) + ", " + format(len(link_list)-hold) + " a
 print("Doc count is " + format(doc) + ", " + format(len(link_list)-doc) + " are missing")
 print('JSON links without a holdings xml link: ' + format(len(no_hold)/2))
 print('_'*100)
-
-
-# In[8]:
-
 
 # loop through link_list of xml links, pull out holdings and company information
 # stitch holdings df and company df together, append that to a master holdings df
@@ -219,10 +193,6 @@ if len(bad_list) > 0:
     for b in bad_list:
         print(b)
 
-
-# In[9]:
-
-
 # Create MySQL connection, append recent extracted holdings to SQL table (hold13f)
 
 connection = engine.connect()
@@ -231,10 +201,6 @@ sqltypes = {'company':sql.types.Text(), 'CIK':sql.types.Text(), 'form':sql.types
             'mkt_val':sql.types.Float(), 'shares':sql.types.Float(), 'type':sql.types.Text()}
 full_df.to_sql('hold13f', con = connection, if_exists = 'append', index = True, dtype = sqltypes)
 print("SQL 13F holdings updated.")
-
-
-# In[10]:
-
 
 # Append list of all daily submitted forms to SQL table (all_forms)
 
@@ -245,10 +211,6 @@ all_forms.to_sql('all_forms', con = connection, if_exists = 'append', index = Tr
 stmt = 'SELECT * FROM all_forms LIMIT 10'
 results = connection.execute(stmt).fetchall()
 print('SQL all_forms table updated.')
-
-
-# In[11]:
-
 
 # Strip date from each link in the index file list, create a df, append to SQL table (idx_dates)
 
@@ -263,4 +225,3 @@ idx_df = pd.DataFrame(mdate_list, columns = ['Link', 'Date']).set_index('Date')
 connection = engine.connect()
 idx_df.to_sql('idx_dates', con=connection, if_exists = 'append', index=True, dtype={'Link':sql.types.Text()})
 print('Added latest dates to SQL processed date list.')
-
